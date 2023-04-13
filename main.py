@@ -1,71 +1,66 @@
 # This is a sample Python script.
 
-import re
 import threading
 
+# Dividir els arxius en blocs
+def splitting(nom_arxiu, tam_bloc):
+    blocs = []
+    total_words = 0
+    with open(nom_arxiu, 'r') as f:
+        lines = f.readlines()
+        for i in range(0, len(lines), tam_bloc):
+            blocs = lines[i:i + tam_bloc]
+            total_words += sum(len(line.split()) for line in blocs)
 
-class MapReduce:
+    return blocs, total_words
 
-    def __init__(self, num_threads=4, block_size=10000):
-        self.num_threads = num_threads
-        self.block_size = block_size
-        self.maps = []
-        self.lock = threading.Lock()
+# Funció de map
+def map_func(bloc):
+    bloc_sense_comas = bloc.replace(',', ' ').replace('.', ' ')
+    paraules = [paraula.lower() for paraula in bloc_sense_comas.split()]
+    parells_clau_valor = [(paraula, 1) for paraula in paraules]
+    return parells_clau_valor
 
-    def map(self, block):
-        # Función Map para cada bloque de datos
-        word_count = {}
-        for line in block:
-            for word in re.findall(r'\w+', line):
-                word = word.lower()
-                word_count[word] = word_count.get(word, 0) + 1
-        with self.lock:
-            self.maps.append(word_count)
+# Funció de reduce
+def reduce_func(parell_clau_valor, num_caracters):
+    paraula, freq = parell_clau_valor[0], sum(parell_clau_valor[1])/num_caracters*100
+    return (paraula, freq)
 
-    def reduce(self):
-        # Función Reduce para combinar los resultados de cada bloque
-        result = {}
-        for word_count in self.maps:
-            for word, count in word_count.items():
-                result[word] = result.get(word, 0) + count
-        return result
-
-    def process_files(self, files):
-        # Función principal para procesar los archivos de texto
-        results = {}
-        for file in files:
-            blocks = []
-            with open(file, 'r') as f:
-                lines = f.readlines()
-                for i in range(0, len(lines), self.block_size):
-                    blocks = lines[i:i + self.block_size]
-                    #blocks.append(block)
-
-            self.maps = []
-            threads = []
-            for i in range(self.num_threads):
-                threads.append(threading.Thread(target=self.map, args=(blocks[i::self.num_threads],)))
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
-
-            results[file] = self.reduce()
-
-        return results
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
+# Shuffle
+def shuffle(parells_clau_valor):
+    # Función Shuffle para unir todas las palabras y mostrar cuántas hay sin hacer la suma
+    parells_clau_valor_agrupats = {}
+    for tupla in parells_clau_valor:
+        for paraula, freq in tupla:
+            if paraula not in parells_clau_valor_agrupats:
+                parells_clau_valor_agrupats[paraula] = []
+            parells_clau_valor_agrupats[paraula].append(freq)
+    return parells_clau_valor_agrupats
+def main(noms_arxius, tam_bloc):
+    blocs = []
+    total_words = 0
+    # Dividir els arxius en blocs
+    for nom_arxiu in noms_arxius:
+        blocs, total_words = splitting(nom_arxiu, tam_bloc)
+    # Crear threads per a la funció de map
+    parells_clau_valor = []
+    threads_map = []
+    for bloc in blocs:
+        t = threading.Thread(target=lambda q, arg1: q.append(map_func(arg1)), args=(parells_clau_valor, bloc))
+        t.start()
+        threads_map.append(t)
+        for t in threads_map:
+            t.join()
+    # Crear threads per a la funció de shuffle
+    parells_clau_valor_agrupats = shuffle(parells_clau_valor)
+    # Executar la funció de reduce
+    parells_clau_valor_reduits = []
+    for paraula, freqs in parells_clau_valor_agrupats.items():
+        parells_clau_valor_reduits.append(reduce_func((paraula, freqs), total_words))
+    return parells_clau_valor_reduits
 if __name__ == '__main__':
-    print_hi('PyCharm')
-    mr = MapReduce()
-    results = mr.process_files(['ArcTecSw_2023_BigData_Practica_Part1_Sample'])
-    for file, result in results.items():
-        print(f"File {file}: {result}")
-
+    noms_arxius = ["ArcTecSw_2023_BigData_Practica_Part1_Sample"]
+    tam_bloc = 1000
+    resultat = main(noms_arxius, tam_bloc)
+    print(resultat)
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

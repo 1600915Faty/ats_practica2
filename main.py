@@ -36,12 +36,13 @@ def shuffle(parells_clau_valor):
                 parells_clau_valor_agrupats[paraula] = []
             parells_clau_valor_agrupats[paraula].append(freq)
     return parells_clau_valor_agrupats
-def main(noms_arxius, tam_bloc):
+def main(nom_arxiu, tam_bloc):
     blocs = []
     total_words = 0
     # Dividir els arxius en blocs
-    for nom_arxiu in noms_arxius:
-        blocs, total_words = splitting(nom_arxiu, tam_bloc)
+    #for nom_arxiu in noms_arxius:
+     #   blocs, total_words = splitting(nom_arxiu, tam_bloc)
+    blocs, total_words = splitting(nom_arxiu, tam_bloc)
     # Crear threads per a la funció de map
     parells_clau_valor = []
     threads_map = []
@@ -61,6 +62,12 @@ def main(noms_arxius, tam_bloc):
 if __name__ == '__main__':
     noms_arxius = ["ArcTecSw_2023_BigData_Practica_Part1_Sample"]
     tam_bloc = 1000
-    resultat = main(noms_arxius, tam_bloc)
-    print(resultat)
+        
+    for i in noms_arxius:
+        resultats = main(i, tam_bloc)
+        print(i + ":")
+        for resultat in resultats:
+
+            print(resultat[0] + ": " + str(round(resultat[1],2)) + "%")
+
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

@@ -1,17 +1,18 @@
 import sys
 import os
+from multiprocessing import Pool
 
-def read_in_chunks(file_path, chunk_size=1024):
+def read_in_chunks(file_path, chunk_size=100):
     with open(file_path, 'r') as file:
         while True:
-            data = file.read(chunk_size)
-            if not data:
+            lines = file.readlines(chunk_size)
+            if not lines:
                 break
-            yield data
+            yield ' '.join(lines)
 
-def mapper(file_path):
+def mapper(file_path, chunk_size=100):
     word_count = {}
-    for block in read_in_chunks(file_path):
+    for block in read_in_chunks(file_path, chunk_size):
         block = block.replace(',', ' ').replace('.', ' ')
         words = block.split()
         for word in words:
@@ -31,20 +32,28 @@ def reducer(mapper_outputs):
     return word_count
 
 if __name__ == '__main__':
-    #input_files = sys.argv[1:]
-    input_files = ["ArcTecSw_2023_BigData_Practica_Part1_Sample"]
-    mapper_outputs = []
-    for input_file in input_files:
-        mapper_output = mapper(input_file)
-        mapper_outputs.append(mapper_output)
+    # Obtener los argumentos de entrada
+    input_files = ["words2.txt"]
+    num_processes = 8  # Establecer el número de procesos
+
+    # Lanzar múltiples procesos utilizando la biblioteca multiprocessing
+    with Pool(num_processes) as p:
+        # Llamar al método mapper para cada archivo de entrada
+        mapper_outputs = p.starmap(mapper, [(f, 100) for f in input_files])
+
+    # Reducir la salida del mapper
     word_count = reducer(mapper_outputs)
+
+    # Imprimir los resultados
     for input_file, file_word_count in zip(input_files, mapper_outputs):
         print(f"{input_file}:")
         for word, count in file_word_count.items():
             frequency = (count / sum(file_word_count.values())) * 100
             print(f"{word} : {frequency:.2f}%")
         print()
+
     """"
+    #input_files = sys.argv[1:]
     for i in noms_arxius:
         resultats = main(i, tam_bloc)
         print(i + ":")
@@ -64,4 +73,3 @@ if __name__ == '__main__':
                 line += word + ' '
             file.write(line.strip() + '\n')
             """
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

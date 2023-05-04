@@ -19,10 +19,11 @@ def map_func(lines):
         words = line.strip().lower().split()
 
         for word in words:
-            freq[word] = freq.get(word, 0) + 1
+            if word not in freq:
+                freq[word] = []
+            freq[word].append(1)
             total += 1
     return freq
-    #return [(word, count/total*100) for word, count in freq.items()]
 
 def reduce_func(results):
     """Combina los resultados de varios bloques de líneas."""
@@ -30,8 +31,10 @@ def reduce_func(results):
     total = 0
     for block in results:
         for name,num in block.items():
-            freq[name] = freq.get(name, 0) + num
-            total += num
+            if name not in freq:
+                freq[name] = 0
+            freq[name] += len(num)
+            total += len(num)
 
     return [(word, freq[word]/total*100) for word in sorted(freq.keys())]
 
@@ -71,7 +74,7 @@ if __name__ == '__main__':
     #num_processes = int(sys.argv[-1])
 
     # Ejecuta el MapReduce
-    run_mapreduce(["words2.txt"], 8)
+    run_mapreduce(["ArcTecSw_2023_BigData_Practica_Part1_Sample"], 8)
     """"
     #input_files = sys.argv[1:]
     for i in noms_arxius:

@@ -12,19 +12,25 @@ def file_chunks(filename, chunk_size=1024*1024):
 
 def map_func(lines):
     """Cuenta la frecuencia de cada palabra en un bloque de líneas."""
-    freq = {}
-    total = 0
+    list = []
     for line in lines:
         line = line.replace(',', ' ').replace('.', ' ')
         words = line.strip().lower().split()
 
         for word in words:
-            if word not in freq:
-                freq[word] = []
-            freq[word].append(1)
-            total += 1
-    return freq
+            w = {}
+            w[word] = 1
+            list.append(w)
+    return list
 
+def shuffle_func(blocks):
+    results = {}
+    for block in blocks:
+        for word in block:
+            if word not in results:
+                results[word] = []
+            results[word].append(1)
+    return results
 def reduce_func(results):
     """Combina los resultados de varios bloques de líneas."""
     freq = {}
@@ -50,8 +56,11 @@ def run_mapreduce(filenames, num_processes):
     for task in tasks:
         filename, chunk = task
         result = map_func(chunk)
-        results.append((filename, result))
-
+        results.append(result)
+    print(results)
+    results = shuffle_func(result)
+    print(results)
+    """
     # Agrupa los resultados por archivo y combina los resultados de cada archivo
     file_results = {}
     for filename, result in results:
@@ -59,6 +68,17 @@ def run_mapreduce(filenames, num_processes):
             file_results[filename] = []
         file_results[filename].append(result)
     final_results = {}
+    """
+    """
+    # Agrupa los resultados por archivo y combina los resultados de cada archivo
+    file_results = {}
+    filename = "words2.txt"
+    for result in results:
+        if filename not in file_results:
+            file_results[filename] = []
+        file_results[filename].append(results)
+    final_results = {}
+
     for filename, results in file_results.items():
         final_results[filename] = reduce_func(results)
 
@@ -67,7 +87,7 @@ def run_mapreduce(filenames, num_processes):
         print(f"{filename}:")
         for word, freq in final_results[filename]:
             print(f"{word} : {freq:.2f}%")
-
+    """
 if __name__ == '__main__':
     # Parsea los argumentos de la línea de comandos
     #filenames = sys.argv[1:-1]

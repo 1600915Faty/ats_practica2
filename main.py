@@ -1,17 +1,13 @@
 import sys
-import multiprocessing as mp
+import multiprocessing
 
-def file_chunks(filename, chunk_size=1024*1024):
-    """Genera bloques de líneas del archivo."""
+def read_file(filename):
+    """Función auxiliar para leer el contenido de un archivo."""
     with open(filename, 'r', encoding='utf-8') as f:
-        while True:
-            lines = f.readlines(chunk_size)
-            if not lines:
-                break
-            yield lines
+        return f.readlines()
 
-def map_func(lines):
-    """Cuenta la frecuencia de cada palabra en un bloque de líneas."""
+def map_function(lines):
+    """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
     list = []
     for line in lines:
         line = line.replace(',', ' ').replace('.', ' ')
@@ -23,78 +19,63 @@ def map_func(lines):
             list.append(w)
     return list
 
-def shuffle_func(blocks):
-    results = {}
-    for block in blocks:
-        for word in block:
-            if word not in results:
-                results[word] = []
-            results[word].append(1)
-    return results
-def reduce_func(results):
-    """Combina los resultados de varios bloques de líneas."""
+def reduce_function(frequencies_list):
+    """Función Reduce que fusiona varias frecuencias parciales en una sola."""
     freq = {}
     total = 0
-    for block in results:
-        for name,num in block.items():
-            if name not in freq:
-                freq[name] = 0
-            freq[name] += len(num)
-            total += len(num)
+    for block in frequencies_list:
+        if block not in freq:
+            freq[block] = 0
+        freq[block] += len(frequencies_list[block])
+        total += len(frequencies_list[block])
+    return freq, total
 
-    return [(word, freq[word]/total*100) for word in sorted(freq.keys())]
+def shuffle_function(mapped_list):
+    """Función Shuffle que agrupa las frecuencias por palabra."""
+    results = {}
+    for block in mapped_list:
+        for word in block:
+            w = word.items()
+            for name, value in w:
+                if name not in results:
+                    results[name] = []
+                results[name].append(1)
+    return results
 
-def run_mapreduce(filenames, num_processes):
-    # Crea un objeto Pool con el número de procesos especificado
-    pool = mp.Pool(num_processes)
+def process_file(filename):
+    """Función que ejecuta el Map-Reduce en un archivo de texto."""
+    lines = read_file(filename)
+    blocks = [lines[i:i+1000] for i in range(0, len(lines), 1000)]  # dividir el archivo en bloques de 1000 líneas
+    with multiprocessing.Pool() as pool:
+        mapped = pool.map(map_function, blocks)
+        shuffled = shuffle_function(mapped)
+        result, total = reduce_function(shuffled)
+    return result, total
 
-    # Crea una lista de tareas
-    tasks = [(filename, chunk) for filename in filenames for chunk in file_chunks(filename)]
-
-    # Ejecuta las tareas en paralelo
-    results = []
-    for task in tasks:
-        filename, chunk = task
-        result = map_func(chunk)
-        results.append(result)
-    print(results)
-    results = shuffle_func(result)
-    print(results)
-    """
-    # Agrupa los resultados por archivo y combina los resultados de cada archivo
-    file_results = {}
-    for filename, result in results:
-        if filename not in file_results:
-            file_results[filename] = []
-        file_results[filename].append(result)
-    final_results = {}
-    """
-    """
-    # Agrupa los resultados por archivo y combina los resultados de cada archivo
-    file_results = {}
-    filename = "words2.txt"
-    for result in results:
-        if filename not in file_results:
-            file_results[filename] = []
-        file_results[filename].append(results)
-    final_results = {}
-
-    for filename, results in file_results.items():
-        final_results[filename] = reduce_func(results)
-
-    # Muestra los resultados por pantalla
-    for filename in filenames:
-        print(f"{filename}:")
-        for word, freq in final_results[filename]:
-            print(f"{word} : {freq:.2f}%")
-    """
 if __name__ == '__main__':
-    # Parsea los argumentos de la línea de comandos
-    #filenames = sys.argv[1:-1]
-    #num_processes = int(sys.argv[-1])
+    # parsear los argumentos de línea de comandos
+    num_processes = 4  # valor por defecto
+    optional_mode = False  # valor por defecto
+    filenames = ["words2.txt"]
+    """
+    for arg in sys.argv[1:]:
+        if arg.startswith('-p'):
+            num_processes = int(arg[2:])
+        elif arg.startswith('-o'):
+            optional_mode = True
+        else:
+            filenames.append(arg)
+    """
+    # ejecutar el Map-Reduce en cada archivo
+    for filename in filenames:
+        result, total = process_file(filename)
 
-    # Ejecuta el MapReduce
-    run_mapreduce(["ArcTecSw_2023_BigData_Practica_Part1_Sample"], 8)
+        # imprimir el resultado
+        print(f'{filename}:')
+        for word, count in sorted(result.items(), key=lambda x: x[1], reverse=True):
+            percentage = 100.0 * count / total
+            print(f'{word} : {percentage:.2f}%')
+        print()
     """"
     #input_files = sys.argv[1:]
     for i in noms_arxius:

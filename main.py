@@ -1,6 +1,7 @@
+import random
 import sys
 import multiprocessing
-
+import time
 def read_file(filename):
     """Función auxiliar para leer el contenido de un archivo."""
     with open(filename, 'r', encoding='utf-8') as f:
@@ -46,17 +47,21 @@ def process_file(filename):
     """Función que ejecuta el Map-Reduce en un archivo de texto."""
     lines = read_file(filename)
     blocks = [lines[i:i+1000] for i in range(0, len(lines), 1000)]  # dividir el archivo en bloques de 1000 líneas
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(processes=8) as pool:
         mapped = pool.map(map_function, blocks)
-        shuffled = shuffle_function(mapped)
+
+    shuffled = shuffle_function(mapped)
+    with multiprocessing.Pool(processes=8) as pool:
         result, total = reduce_function(shuffled)
     return result, total
 
 if __name__ == '__main__':
+
     # parsear los argumentos de línea de comandos
-    num_processes = 4  # valor por defecto
+    num_processes = 8  # valor por defecto
     optional_mode = False  # valor por defecto
-    filenames = ["words2.txt"]
+    filenames = ["words7.txt"]
+
     """
     for arg in sys.argv[1:]:
         if arg.startswith('-p'):
@@ -66,9 +71,14 @@ if __name__ == '__main__':
         else:
             filenames.append(arg)
     """
+
+
+
     # ejecutar el Map-Reduce en cada archivo
     for filename in filenames:
+        start = time.time()
         result, total = process_file(filename)
+        final = time.time()
 
         # imprimir el resultado
         print(f'{filename}:')
@@ -76,7 +86,8 @@ if __name__ == '__main__':
             percentage = 100.0 * count / total
             print(f'{word} : {percentage:.2f}%')
         print()
-    """"
+        print(final - start)
+    """
     #input_files = sys.argv[1:]
     for i in noms_arxius:
         resultats = main(i, tam_bloc)
@@ -86,14 +97,14 @@ if __name__ == '__main__':
     """
     """
     # Lista de palabras aleatorias en inglés
-    words = ['car', 'apple', 'house', 'dog']
+    words = ['car', 'apple', 'house', 'dog', 'pepa', 'coco']
 
     # Crear un archivo de texto y escribir las palabras aleatorias
-    with open('words2.txt', 'w') as file:
-        for i in range(50000000):  # se generan 5000 líneas de 20 palabras cada una
+    with open('words7.txt', 'w') as file:
+        for i in range(3200000):  # se generan 5000 líneas de 20 palabras cada una
             line = ''
             for j in range(20):
                 word = random.choice(words)
                 line += word + ' '
             file.write(line.strip() + '\n')
-            """
+    """

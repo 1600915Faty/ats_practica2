@@ -6,7 +6,10 @@ def read_file(filename):
     """Función auxiliar para leer el contenido de un archivo."""
     with open(filename, 'r', encoding='utf-8') as f:
         return f.readlines()
-
+def read_file_optionals(filename):
+    """Función auxiliar para leer el contenido de un archivo."""
+    with open(filename, 'r', encoding='utf-8') as f:
+        return f.read()
 def map_function_2(lines):
     """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
     list = []
@@ -36,13 +39,11 @@ def map_function(lines):
 def reduce_function(frequencies_list):
     """Función Reduce que fusiona varias frecuencias parciales en una sola."""
     freq = {}
-    total = 0
     for block in frequencies_list:
         if block not in freq:
             freq[block] = 0
         freq[block] += len(frequencies_list[block])
-        total += len(frequencies_list[block])
-    return freq, total
+    return freq
 
 def shuffle_function(mapped_list):
     """Función Shuffle que agrupa las frecuencias por palabra."""
@@ -55,56 +56,96 @@ def shuffle_function(mapped_list):
                     results[name] = []
                 results[name].append(1)
     return results
+def countTotal(reduced):
+    total=0
+    for dicc in reduced:
+        for key in dicc:
+            total+=dicc[key]
+    return total
 
-def process_file(filename, num_processes, mode):
+def files_fusion(results):
+    final_dicctionarie={}
+    for result in results:
+        for dicc in result:
+            for key in dicc:
+                if key not in final_dicctionarie:
+                    final_dicctionarie[key]=0
+                final_dicctionarie[key]+=dicc[key]
+
+    return [final_dicctionarie]
+def process_file(filename, num_processes, optional_mode):
     """Función que ejecuta el Map-Reduce en un archivo de texto."""
-    lines = read_file(filename)
-
-    longitud_sublista = len(lines) // num_processes
-    partes = [lines[i:i + longitud_sublista] for i in range(0, len(lines), longitud_sublista)]
-    if len(lines) % num_processes != 0:
-        partes[-1].extend(lines[len(partes) * longitud_sublista:])
-    #blocks = [lines[i:i+1000] for i in range(0, len(lines), 1000)]  # dividir el archivo en bloques de 1000 líneas
-    if mode==1:
-        with multiprocessing.Pool(processes=num_processes) as pool:
-            mapped = pool.map(map_function, partes)
-    elif mode==2:
-        with multiprocessing.Pool(processes=num_processes) as pool:
-              mapped = pool.map(map_function_2, partes)
-
+    if optional_mode == 0:
+        lines = read_file(filename)
+        blocks = [lines[i:i + 2000] for i in range(0, len(lines), 2000)]  # dividir el archivo en bloques de 1000 líneas
+    else:
+        lines = read_file_optionals(filename)
+        blocks = [lines[i:i + 800] for i in range(0, len(lines), 800)]  # dividir el archivo en bloques de 1000 líneas
+    """
+    mapped=[]
+    for block in blocks:
+        mapped.append(map_function(block))
+    """
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        mapped = pool.map(map_function, blocks)
+    # Obtener los resultados de todas las tareas
     shuffled = shuffle_function(mapped)
     with multiprocessing.Pool(processes=num_processes) as pool:
-        result, total = reduce_function(shuffled)
+        result = pool.map(reduce_function, [shuffled])
+    total = countTotal(result)
     return result, total
 
 if __name__ == '__main__':
 
     # parsear los argumentos de línea de comandos
     num_processes = 8  # valor por defecto
-    mode = 1  # valor por defecto
-    filenames = ["words7.txt"]
+    optional_mode = 0  # valor por defecto
+    filenames = ["words4.txt", "ArcTecSw_2023_BigData_Practica_Part1_Sample"]
 
     """
     for arg in sys.argv[1:]:
         if arg.startswith('-p'):
             num_processes = int(arg[2:])
         elif arg.startswith('-o'):
-            optional_mode = True
+            optional_mode = int(arg[3:])
         else:
             filenames.append(arg)
     """
+    #for optional_mode 0 and 1
+    if optional_mode!=2:
+        # ejecutar el Map-Reduce en cada archivo
+        for filename in filenames:
+            start = time.time()
+            result, total = process_file(filename, num_processes, optional_mode)
+            final = time.time()
 
-    # ejecutar el Map-Reduce en cada archivo
-    for filename in filenames:
+            # imprimir el resultado
+            print(f'{filename}:')
+            for dicc in result:
+                for word, count in sorted(dicc.items(), key=lambda x: x[1], reverse=True):
+                    percentage = 100.0 * count / total
+                    print(f'{word} : {percentage:.2f}%')
+            print()
+            print(final - start)
+            print()
+    #for optional mode 2, mix different files
+    else:
         start = time.time()
-        result, total = process_file(filename, num_processes, mode)
+        results=[]
+        totals = 0
+        print('Files mixed:')
+        for filename in filenames:
+            print(f'{filename}')
+            result, total = process_file(filename, num_processes, optional_mode)
+            totals+=total
+            results.append(result)
+        final_result= files_fusion(results)
         final = time.time()
-
-        # imprimir el resultado
-        print(f'{filename}:')
-        for word, count in sorted(result.items(), key=lambda x: x[1], reverse=True):
-            percentage = 100.0 * count / total
-            print(f'{word} : {percentage:.2f}%')
+        print('Results:')
+        for dicc in final_result:
+            for word, count in sorted(dicc.items(), key=lambda x: x[1], reverse=True):
+                percentage = 100.0 * count / totals
+                print(f'{word} : {percentage:.2f}%')
         print()
         print(final - start)
     """

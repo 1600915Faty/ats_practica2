@@ -7,6 +7,19 @@ def read_file(filename):
     with open(filename, 'r', encoding='utf-8') as f:
         return f.readlines()
 
+def map_function_2(lines):
+    """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
+    list = []
+    for line in lines:
+        line = line.replace(',', ' ').replace('.', ' ')
+        words = line.strip().lower().split()
+
+        for word in words:
+            w = {}
+            w[word] = 1
+            list.append(w)
+    return list
+
 def map_function(lines):
     """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
     list = []
@@ -43,15 +56,24 @@ def shuffle_function(mapped_list):
                 results[name].append(1)
     return results
 
-def process_file(filename):
+def process_file(filename, num_processes, mode):
     """Función que ejecuta el Map-Reduce en un archivo de texto."""
     lines = read_file(filename)
-    blocks = [lines[i:i+1000] for i in range(0, len(lines), 1000)]  # dividir el archivo en bloques de 1000 líneas
-    with multiprocessing.Pool(processes=8) as pool:
-        mapped = pool.map(map_function, blocks)
+
+    longitud_sublista = len(lines) // num_processes
+    partes = [lines[i:i + longitud_sublista] for i in range(0, len(lines), longitud_sublista)]
+    if len(lines) % num_processes != 0:
+        partes[-1].extend(lines[len(partes) * longitud_sublista:])
+    #blocks = [lines[i:i+1000] for i in range(0, len(lines), 1000)]  # dividir el archivo en bloques de 1000 líneas
+    if mode==1:
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            mapped = pool.map(map_function, partes)
+    elif mode==2:
+        with multiprocessing.Pool(processes=num_processes) as pool:
+              mapped = pool.map(map_function_2, partes)
 
     shuffled = shuffle_function(mapped)
-    with multiprocessing.Pool(processes=8) as pool:
+    with multiprocessing.Pool(processes=num_processes) as pool:
         result, total = reduce_function(shuffled)
     return result, total
 
@@ -59,7 +81,7 @@ if __name__ == '__main__':
 
     # parsear los argumentos de línea de comandos
     num_processes = 8  # valor por defecto
-    optional_mode = False  # valor por defecto
+    mode = 1  # valor por defecto
     filenames = ["words7.txt"]
 
     """
@@ -72,12 +94,10 @@ if __name__ == '__main__':
             filenames.append(arg)
     """
 
-
-
     # ejecutar el Map-Reduce en cada archivo
     for filename in filenames:
         start = time.time()
-        result, total = process_file(filename)
+        result, total = process_file(filename, num_processes, mode)
         final = time.time()
 
         # imprimir el resultado

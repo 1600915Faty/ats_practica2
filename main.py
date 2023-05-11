@@ -10,18 +10,6 @@ def read_file_optionals(filename):
     """Función auxiliar para leer el contenido de un archivo."""
     with open(filename, 'r', encoding='utf-8') as f:
         return f.read()
-def map_function_2(lines):
-    """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
-    list = []
-    for line in lines:
-        line = line.replace(',', ' ').replace('.', ' ')
-        words = line.strip().lower().split()
-
-        for word in words:
-            w = {}
-            w[word] = 1
-            list.append(w)
-    return list
 
 def map_function(lines):
     """Función Map que cuenta la frecuencia de las palabras en una lista de líneas."""
@@ -100,7 +88,7 @@ if __name__ == '__main__':
     # parsear los argumentos de línea de comandos
     num_processes = 8  # valor por defecto
     optional_mode = 0  # valor por defecto
-    filenames = ["words4.txt", "ArcTecSw_2023_BigData_Practica_Part1_Sample"]
+    filenames = ["49MB.txt", "ArcTecSw_2023_BigData_Practica_Part1_Sample"]
 
     """
     for arg in sys.argv[1:]:
